@@ -9,10 +9,12 @@
 --    Simple test for VGA control
 --
 -------------------------------------------------------------------------------
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
+
 
 entity top is
   generic (
@@ -32,7 +34,10 @@ entity top is
     sync_o         : out std_logic;
     red_o          : out std_logic_vector(7 downto 0);
     green_o        : out std_logic_vector(7 downto 0);
-    blue_o         : out std_logic_vector(7 downto 0)
+    blue_o         : out std_logic_vector(7 downto 0);
+    -- direct_mode i display_mode za prekidace
+    direct_mode_i : in std_logic;
+    display_mode_i : in std_logic_vector(1 downto 0)
    );
 end top;
 
@@ -157,6 +162,11 @@ architecture rtl of top is
   signal dir_pixel_column    : std_logic_vector(10 downto 0);
   signal dir_pixel_row       : std_logic_vector(10 downto 0);
 
+	type color_array is array(7 downto 0) of std_logic_vector(23 downto 0);
+	signal colors : color_array := (
+		x"ffffff", x"cccc00", x"00ccff", x"00cc00", 
+		x"e600e6", x"ff0000", x"0000ff", x"000000" );
+		
 begin
 
   -- calculate message lenght from font size
@@ -168,8 +178,10 @@ begin
   graphics_lenght <= conv_std_logic_vector(MEM_SIZE*8*8, GRAPH_MEM_ADDR_WIDTH);
   
   -- removed to inputs pin
-  direct_mode <= '1';
-  display_mode     <= "10";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  -- direct_mode <= '1';
+  -- display_mode     <= "10";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  direct_mode <= direct_mode_i;
+  display_mode <= display_mode_i;
   
   font_size        <= x"1";
   show_frame       <= '1';
@@ -246,11 +258,17 @@ begin
     blue_o             => blue_o     
   );
   
+  
+  
   -- na osnovu signala iz vga_top modula dir_pixel_column i dir_pixel_row realizovati logiku koja genereise
   --dir_red
   --dir_green
   --dir_blue
- 
+  
+  dir_red <= colors( conv_integer( dir_pixel_column(10 downto 8) ) )( 23 downto 16 );
+  dir_green <= colors( conv_integer( dir_pixel_column(10 downto 8) ) )( 15 downto 8 );
+  dir_blue <= colors( conv_integer( dir_pixel_column(10 downto 8) ) )( 7 downto 0 );
+  
   -- koristeci signale realizovati logiku koja pise po TXT_MEM
   --char_address
   --char_value

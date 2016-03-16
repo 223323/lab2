@@ -1,0 +1,10 @@
+#-----------------------------------------------------------
+# PlanAhead v14.6 (64-bit)
+# Build 269223 by xbuild on Wed Jun  5 11:07:37 MDT 2013
+# Start of session at: Wed Mar 16 23:42:25 2016
+# Process ID: 7252
+# Log file: /work/HDL/synthesis/lab2/planAhead_run_1/planAhead.log
+# Journal file: /work/HDL/synthesis/lab2/planAhead_run_1/planAhead.jou
+#-----------------------------------------------------------
+start_gui
+source /work/HDL/synthesis/lab2/pa.fromNetlist.tcl
