@@ -127,6 +127,23 @@ architecture rtl of top is
   end component;
   
   
+  component counter2d IS 
+		GENERIC (
+
+				WIDTH    : positive := 10;
+				N_ROWS   : integer := 640;
+				N_COLS	 : integer := 480;
+		);
+		PORT (
+			   clk_i     : IN STD_LOGIC;
+			   rst_i     : IN STD_LOGIC;
+			   cnt_en_i  : IN STD_LOGIC;
+				row_o  : out std_logic_vector(WIDTH-1 downto 0);
+				col_o  : out std_logic_vector(WIDTH-1 downto 0);
+			 );
+	END component;
+  
+  
   constant update_period     : std_logic_vector(31 downto 0) := conv_std_logic_vector(1, 32);
   
   constant GRAPH_MEM_ADDR_WIDTH : natural := MEM_ADDR_WIDTH + 6;-- graphics addres is scales with minumum char size 8*8 log2(64) = 6
@@ -166,7 +183,12 @@ architecture rtl of top is
 	signal colors : color_array := (
 		x"ffffff", x"cccc00", x"00ccff", x"00cc00", 
 		x"e600e6", x"ff0000", x"0000ff", x"000000" );
-		
+	type char_array is array(20 downto 0) of std_logic_vector(5 downto 0);
+	signal chars : char_array := (x"01", x"2", x"3", x"4", x"5", x"6", x"7");
+	
+	signal myrow : std_logic_vector(10 downto 0);
+	signal mycolumn : std_logic_vector(10 downto 0);
+	signal cnt_en_s : std_logic;
 begin
 
   -- calculate message lenght from font size
@@ -206,6 +228,19 @@ begin
     S  => '0'                -- 1-bit set input
   );
   pix_clock_n <= not(pix_clock_s);
+
+  cnt_2d : counter2d
+  generic map(
+	WIDTH => 10,
+	N_ROWS => V_RES,
+	N_COLS => H_RES
+  ) port map (
+	clk_i => clk_i,
+	rst_i => rst_i,
+	cnt_en_i => cnt_en_s,
+	row_o => myrow,
+	col_o => mycolumn
+  )
 
   -- component instantiation
   vga_top_i: vga_top
@@ -270,14 +305,21 @@ begin
   dir_blue <= colors( conv_integer( dir_pixel_column(10 downto 8) ) )( 7 downto 0 );
   
   -- koristeci signale realizovati logiku koja pise po TXT_MEM
-  --char_address
-  --char_value
-  --char_we
+  -- char_address
+  -- char_value
+  -- char_we
+  
+  -- col - offset
+  char_address <= chars( conv_integer( mycolumn(5 downto 3) ) - x"15") & mycolumn(2 downto 0);
+  char_we <= clk_i when myrow;
+  
+  cnt_en_s <= '1' when direct_mode = '0' and display_mode != "00" else '0';
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
-  --pixel_address
-  --pixel_value
-  --pixel_we
+  -- pixel_address
+  -- pixel_value
+  -- pixel_we
   
+  pixel_address <= 
   
 end rtl;
