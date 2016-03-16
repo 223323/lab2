@@ -16,49 +16,36 @@ USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 
 
-ENTITY counter2d IS 
+ENTITY counter IS 
 		GENERIC (
 
-				WIDTH    : positive := 10;
-				N_ROWS   : integer := 640;
-				N_COLS	 : integer := 480;
+				WIDTH    : positive := 10
 		);
 		PORT (
 			   clk_i     : IN STD_LOGIC;
 			   rst_i     : IN STD_LOGIC;
+			   cnt_rst_i : IN STD_LOGIC;
 			   cnt_en_i  : IN STD_LOGIC;
-				row_o  : out std_logic_vector(WIDTH-1 downto 0);
-				col_o  : out std_logic_vector(WIDTH-1 downto 0);
+				cnt_o  : out std_logic_vector(WIDTH-1 downto 0)
 			 );
-END counter2d;
+END counter;
 
 
 
 
-ARCHITECTURE rtl OF counter2d IS
+ARCHITECTURE rtl OF counter IS
 	
-	
+	signal cnt : std_logic_vector(WIDTH-1 downto 0);
 BEGIN
 
-	process(clk_i,in_rst) begin
-		if rising_edge(in_rst) then
+	process(clk_i,rst_i,cnt_rst_i) begin
+		if rst_i = '0' or cnt_rst_i = '0' then
 			cnt <= (others => '0');
 		elsif rising_edge(clk_i) and cnt_en_i = '1' then
-			if cnt < N_COLS then
-				cnt <= cnt + 1;
-			else
-				cnt <= (others => '0');
-				if cnt_rows < N_ROWS then
-					cnt_rows <= cnt_rows + 1;
-				else
-					cnt_rows <= (others => '0');
-					cnt <= (others => '0');
-				end if;
-			end if;
+			cnt <= cnt + 1;
 		end if;
 	end process;
 
-	col_o <= cnt;
-	row_o <= cnt_rows;
+	cnt_o <= cnt;
 
 END rtl;

@@ -127,19 +127,17 @@ architecture rtl of top is
   end component;
   
   
-  component counter2d IS 
+  component counter IS 
 		GENERIC (
 
-				WIDTH    : positive := 10;
-				N_ROWS   : integer := 640;
-				N_COLS	 : integer := 480;
+				WIDTH    : positive := 10
 		);
 		PORT (
 			   clk_i     : IN STD_LOGIC;
 			   rst_i     : IN STD_LOGIC;
+			   cnt_rst_i : IN STD_LOGIC;
 			   cnt_en_i  : IN STD_LOGIC;
-				row_o  : out std_logic_vector(WIDTH-1 downto 0);
-				col_o  : out std_logic_vector(WIDTH-1 downto 0);
+				cnt_o  : out std_logic_vector(WIDTH-1 downto 0)
 			 );
 	END component;
   
@@ -183,12 +181,17 @@ architecture rtl of top is
 	signal colors : color_array := (
 		x"ffffff", x"cccc00", x"00ccff", x"00cc00", 
 		x"e600e6", x"ff0000", x"0000ff", x"000000" );
-	type char_array is array(20 downto 0) of std_logic_vector(5 downto 0);
-	signal chars : char_array := (x"01", x"2", x"3", x"4", x"5", x"6", x"7");
+	type char_array is array(6 downto 0) of std_logic_vector(5 downto 0);
 	
-	signal myrow : std_logic_vector(10 downto 0);
-	signal mycolumn : std_logic_vector(10 downto 0);
+	signal chars : char_array := ("000001", "000010", "000011", "000100", "000101", "000110", "000111");
+	
+	signal cnt1 : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
+	signal cnt2 : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
 	signal cnt_en_s : std_logic;
+	signal cnt1_rst : std_logic;
+	signal cnt2_rst : std_logic;
+	signal in_rectangle : std_logic;
+	constant CNT2_MAX : integer := H_RES/GRAPH_MEM_DATA_WIDTH*V_RES;
 begin
 
   -- calculate message lenght from font size
@@ -229,18 +232,29 @@ begin
   );
   pix_clock_n <= not(pix_clock_s);
 
-  cnt_2d : counter2d
+  counter1 : counter
   generic map(
-	WIDTH => 10,
-	N_ROWS => V_RES,
-	N_COLS => H_RES
+	WIDTH => MEM_ADDR_WIDTH
   ) port map (
 	clk_i => clk_i,
-	rst_i => rst_i,
+	rst_i => reset_n_i,
+	cnt_rst_i => cnt1_rst,
 	cnt_en_i => cnt_en_s,
-	row_o => myrow,
-	col_o => mycolumn
-  )
+	cnt_o => cnt1
+  );
+  
+  counter2 : counter
+  generic map(
+	WIDTH => MEM_ADDR_WIDTH
+  ) port map (
+	clk_i => clk_i,
+	rst_i => reset_n_i,
+	cnt_rst_i => cnt2_rst,
+	cnt_en_i => cnt_en_s,
+	cnt_o => cnt2
+  );
+
+	
 
   -- component instantiation
   vga_top_i: vga_top
@@ -309,17 +323,22 @@ begin
   -- char_value
   -- char_we
   
-  -- col - offset
-  char_address <= chars( conv_integer( mycolumn(5 downto 3) ) - x"15") & mycolumn(2 downto 0);
-  char_we <= clk_i when myrow;
+  char_address <= cnt1;
+  char_value <= chars(conv_integer( cnt1 ));
+  char_we <= clk_i when cnt1 < chars'length else '0';
   
-  cnt_en_s <= '1' when direct_mode = '0' and display_mode != "00" else '0';
+  cnt_en_s <= '1' when direct_mode = '0' and display_mode /= "00" else '0';
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   -- pixel_address
   -- pixel_value
   -- pixel_we
   
-  pixel_address <= 
+  cnt2_rst <= '0' when cnt2 >= CNT2_MAX else '1';
+  in_rectangle <= '1' when dir_pixel_column > H_RES/4 and dir_pixel_column < 3*H_RES/4 and
+						   dir_pixel_row > V_RES/4 and dir_pixel_row < 3*V_RES/4;
+  pixel_address <= cnt2 when cnt2 < CNT2_MAX else (others => '0');
+  pixel_value <= (others => '1') when in_rectangle = '1';
+  pixel_we <= '1' when in_rectangle = '1' and cnt2 < CNT2_MAX else '0';
   
 end rtl;
